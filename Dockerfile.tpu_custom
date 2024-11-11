@@ -1,5 +1,6 @@
 ARG NIGHTLY_DATE="20240828"
 ARG BASE_IMAGE="us-central1-docker.pkg.dev/tpu-pytorch-releases/docker/xla:nightly_3.10_tpuvm_$NIGHTLY_DATE"
+ARG HF_TOKEN=""
 
 FROM $BASE_IMAGE
 WORKDIR /workspace/vllm
@@ -29,7 +30,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
         -r requirements-tpu.txt
 RUN python3 setup.py develop
 RUN wget https://huggingface.co/datasets/anon8231489123/ShareGPT_Vicuna_unfiltered/resolve/main/ShareGPT_V3_unfiltered_cleaned_split.json -O /workspace/ShareGPT_V3_unfiltered_cleaned_split.json
-ENV HF_TOKEN=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
+ENV HF_TOKEN=$HF_TOKEN
 
 ENV VLLM_XLA_CACHE_PATH=/root/.cache/vllm/xla_cache
 
