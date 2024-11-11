@@ -1,0 +1,36 @@
+ARG NIGHTLY_DATE="20240828"
+ARG BASE_IMAGE="us-central1-docker.pkg.dev/tpu-pytorch-releases/docker/xla:nightly_3.10_tpuvm_$NIGHTLY_DATE"
+
+FROM $BASE_IMAGE
+WORKDIR /workspace/vllm
+
+# Install some basic utilities
+RUN apt-get update && apt-get install -y \
+    git \
+    ffmpeg libsm6 libxext6 libgl1
+
+# Install the TPU and Pallas dependencies.
+RUN --mount=type=cache,target=/root/.cache/pip \
+    python3 -m pip install torch_xla[tpu] -f https://storage.googleapis.com/libtpu-releases/index.html
+RUN --mount=type=cache,target=/root/.cache/pip \
+    python3 -m pip install torch_xla[pallas] -f https://storage.googleapis.com/jax-releases/jax_nightly_releases.html -f https://storage.googleapis.com/jax-releases/jaxlib_nightly_releases.html
+
+# Build vLLM.
+COPY . .
+ARG GIT_REPO_CHECK=0
+RUN --mount=type=bind,source=.git,target=.git \
+    if [ "$GIT_REPO_CHECK" != 0 ]; then bash tools/check_repo.sh; fi
+
+ENV VLLM_TARGET_DEVICE="tpu"
+RUN --mount=type=cache,target=/root/.cache/pip \
+    --mount=type=bind,source=.git,target=.git \
+    python3 -m pip install \
+        cmake>=3.26 ninja packaging setuptools-scm>=8 wheel jinja2 \
+        -r requirements-tpu.txt
+RUN python3 setup.py develop
+RUN wget https://huggingface.co/datasets/anon8231489123/ShareGPT_Vicuna_unfiltered/resolve/main/ShareGPT_V3_unfiltered_cleaned_split.json -O /workspace/ShareGPT_V3_unfiltered_cleaned_split.json
+ENV HF_TOKEN=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
+
+ENV VLLM_XLA_CACHE_PATH=/root/.cache/vllm/xla_cache
+
+CMD ["python", "benchmarks/benchmark_custom.py", "--tensor_parallel_size=4", "--model=/models/Llama-3.1-8B", "--max-model-len=512", "--swap-space=8"]
