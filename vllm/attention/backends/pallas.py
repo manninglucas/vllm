@@ -109,8 +109,8 @@ class PallasAttentionBackendImpl(AttentionImpl):
 
         assert self.num_heads % self.num_kv_heads == 0
         self.num_queries_per_kv = self.num_heads // self.num_kv_heads
-        if head_size % 128 != 0:
-            raise NotImplementedError("Head size must be a multiple of 128.")
+        if head_size % 32 != 0:
+            raise NotImplementedError("Head size must be a multiple of 32.")
         if alibi_slopes is not None:
             raise NotImplementedError("Alibi slopes is not supported.")
         if sliding_window is not None:
