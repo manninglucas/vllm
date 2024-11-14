@@ -266,7 +266,7 @@ class TPUModelRunner(ModelRunnerBase[ModelInputForTPU]):
         # Decode
         start = time.time()
         seq_len = 1
-        batch_size = 8  # Must be in sync with _get_padded_batch_size()
+        batch_size = 1024  # Must be in sync with _get_padded_batch_size()
         while True:
             self._dummy_run(batch_size, seq_len, kv_caches, is_prompt=False)
             xm.wait_device_ops()
@@ -274,7 +274,7 @@ class TPUModelRunner(ModelRunnerBase[ModelInputForTPU]):
 
             if batch_size >= self.scheduler_config.max_num_seqs:
                 break
-            batch_size = batch_size + 16 if batch_size >= 16 else batch_size * 2
+            batch_size = batch_size + 1024 if batch_size >= 1024 else batch_size * 2
 
         end = time.time()
         logger.info("Compilation for decode done in %.2f s.", end - start)
@@ -799,10 +799,10 @@ def _get_padded_batch_size(batch_size: int) -> int:
     # The GMM Pallas kernel requires num_tokens * topk to be a multiple of 16.
     # To meet this requirement in the simplest way, we set the minimal batch
     # size to 8.
-    if batch_size <= 8:
-        return 8
+    if batch_size <= 1024:
+        return 1024
     else:
-        return ((batch_size + 15) // 16) * 16
+        return ((batch_size + 1023) // 1024) * 1024
 
 
 def _apply_top_p(logits: torch.Tensor, p: torch.Tensor) -> torch.Tensor:
