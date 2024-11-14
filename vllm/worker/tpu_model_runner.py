@@ -266,7 +266,7 @@ class TPUModelRunner(ModelRunnerBase[ModelInputForTPU]):
         # Decode
         start = time.time()
         seq_len = 1
-        batch_size = 1024  # Must be in sync with _get_padded_batch_size()
+        batch_size = 8 # Must be in sync with _get_padded_batch_size()
         while True:
             self._dummy_run(batch_size, seq_len, kv_caches, is_prompt=False)
             xm.wait_device_ops()
